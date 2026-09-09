@@ -18,6 +18,9 @@ const checkValidation = (req, res, next) => {
   next();
 };
 
+// Every route below requires: logged in AND role = manager
+router.use(protect, authorize("manager"));
+
 router.get("/", getUsers);
 
 router.post(

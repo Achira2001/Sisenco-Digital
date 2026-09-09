@@ -1,5 +1,8 @@
 const User = require("../models/User");
 
+// @route  GET /api/users
+// @access Private (manager only)
+// Lists all team members, for the User Management page and dropdown filters.
 const getUsers = async (req, res) => {
   try {
     const { includeInactive } = req.query;
@@ -12,7 +15,8 @@ const getUsers = async (req, res) => {
   }
 };
 
-
+// @route  POST /api/users
+// @access Private (manager only)
 const createUser = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
@@ -29,7 +33,7 @@ const createUser = async (req, res) => {
       role: role === "manager" ? "manager" : "member",
     });
 
-  
+    // Never send the password hash back
     res.status(201).json({
       _id: user._id,
       name: user.name,
@@ -42,7 +46,8 @@ const createUser = async (req, res) => {
   }
 };
 
-
+// @route  PUT /api/users/:id/role
+// @access Private (manager only)
 const updateUserRole = async (req, res) => {
   try {
     const { role } = req.body;
@@ -64,7 +69,8 @@ const updateUserRole = async (req, res) => {
   }
 };
 
-
+// @route  PUT /api/users/:id/status
+// @access Private (manager only)
 const setUserActiveStatus = async (req, res) => {
   try {
     const { isActive } = req.body;
@@ -74,7 +80,6 @@ const setUserActiveStatus = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
- 
     if (user._id.toString() === req.user._id.toString() && isActive === false) {
       return res.status(400).json({ message: "You cannot deactivate your own account" });
     }
