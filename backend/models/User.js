@@ -12,7 +12,7 @@ const userSchema = new mongoose.Schema(
     email: {
       type: String,
       required: [true, "Email is required"],
-      unique: true,
+      unique: true, // Email must be unique
       lowercase: true,
       trim: true,
     },
@@ -21,26 +21,25 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, "Password is required"],
       minlength: 6,
-      select: false,
+      select: false, // Do not return password by default
     },
 
     role: {
       type: String,
-      enum: ["member", "manager"],
+      enum: ["member", "manager"], 
       default: "member",
     },
 
+    // Used to disable a user without deleting them
     isActive: {
       type: Boolean,
       default: true,
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true } // Adds createdAt and updatedAt
 );
 
-// Hash password before saving
+// Hash the password before saving
 userSchema.pre("save", async function () {
   if (!this.isModified("password")) {
     return;
@@ -50,7 +49,7 @@ userSchema.pre("save", async function () {
   this.password = await bcrypt.hash(this.password, salt);
 });
 
-// Compare password
+// Check the entered password with the saved password
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return bcrypt.compare(enteredPassword, this.password);
 };

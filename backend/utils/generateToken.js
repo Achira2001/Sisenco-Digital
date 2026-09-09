@@ -5,8 +5,8 @@ const generateToken = (userId, role) => {
     {
       id: userId,
       role,
-    },
-    process.env.JWT_SECRET,
+    }, // data stored inside the token
+    process.env.JWT_SECRET, // secret key used to sign it
     {
       expiresIn: process.env.JWT_EXPIRES_IN || "7d",
     }
