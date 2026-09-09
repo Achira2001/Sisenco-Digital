@@ -23,6 +23,7 @@ app.get("/api/health", (req, res) => {
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/projects", require("./routes/projectRoutes"));
 app.use("/api/users", require("./routes/userRoutes"));
+app.use("/api/reports", require("./routes/reportRoutes"));
 
 // Handle server errors
 app.use((err, req, res, next) => {
