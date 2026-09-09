@@ -24,6 +24,7 @@ app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/projects", require("./routes/projectRoutes"));
 app.use("/api/users", require("./routes/userRoutes"));
 app.use("/api/reports", require("./routes/reportRoutes"));
+app.use("/api/dashboard", require("./routes/dashboardRoutes"));
 
 // Handle server errors
 app.use((err, req, res, next) => {
