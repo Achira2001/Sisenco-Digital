@@ -1,46 +1,43 @@
-// Seed script: fills the database with realistic demo data so the
-// dashboard and report pages have something meaningful to show.
-//
-// Run it with: npm run seed   (defined in package.json)
-//
-// It creates:
-//  - 1 manager + 4 team members (all with password: "password123")
-//  - 4 projects
-//  - reports for the last 4 weeks per member, in different statuses,
-//    so every status (draft, submitted, needs_correction, approved) and
-//    the "not started" case are all represented on the dashboard.
-
 require("dotenv").config();
+
 const mongoose = require("mongoose");
 const connectDB = require("../config/db");
+
 const User = require("../models/User");
 const Project = require("../models/Project");
 const Report = require("../models/Report");
 
-// Same "find the Monday of the week" helper used by the dashboard, so seeded
-// report weeks line up correctly with dashboard week filters.
+// Get Monday of a week
 const getMonday = (date) => {
   const d = new Date(date);
   const day = d.getDay();
   const diffToMonday = day === 0 ? -6 : 1 - day;
+
   d.setHours(0, 0, 0, 0);
   d.setDate(d.getDate() + diffToMonday);
+
   return d;
 };
 
+// Get Monday from a previous week
 const weeksAgo = (n) => {
   const d = new Date();
+
   d.setDate(d.getDate() - n * 7);
+
   return getMonday(d);
 };
 
+// Add days to a date
 const addDays = (date, days) => {
   const d = new Date(date);
+
   d.setDate(d.getDate() + days);
+
   return d;
 };
 
-// Builds one fake but realistic set of report content fields.
+// Create sample report content
 const buildContent = (personName, projectName, weekIndex) => ({
   tasksCompleted: [
     {
@@ -64,13 +61,26 @@ const buildContent = (personName, projectName, weekIndex) => ({
       deliverable: "Bug fix deployed",
     },
   ],
-  tasksPlannedNextWeek: [`Continue ${projectName} work`, "Attend sprint planning"],
+
+  tasksPlannedNextWeek: [
+    `Continue ${projectName} work`,
+    "Attend sprint planning",
+  ],
+
   blockers: [
-    { description: `Waiting on design assets for ${projectName}`, isKeyIssue: true },
+    {
+      description: `Waiting on design assets for ${projectName}`,
+      isKeyIssue: true,
+    },
   ],
+
   achievements: [
-    { description: `${personName} shipped the ${projectName} update on time`, isKeyAchievement: true },
+    {
+      description: `${personName} shipped the ${projectName} update on time`,
+      isKeyAchievement: true,
+    },
   ],
+
   hoursByType: {
     development: 20,
     testing: 6,
@@ -78,16 +88,25 @@ const buildContent = (personName, projectName, weekIndex) => ({
     documentation: 2,
     other: 1,
   },
+
   notes: "No additional notes this week.",
 });
 
 const run = async () => {
   await connectDB();
 
+  // Clear old data
   console.log("Clearing existing data...");
-  await Promise.all([User.deleteMany({}), Project.deleteMany({}), Report.deleteMany({})]);
 
+  await Promise.all([
+    User.deleteMany({}),
+    Project.deleteMany({}),
+    Report.deleteMany({}),
+  ]);
+
+  // Create manager
   console.log("Creating users...");
+
   const manager = await User.create({
     name: "Nirmal Perera",
     email: "manager@example.com",
@@ -95,14 +114,28 @@ const run = async () => {
     role: "manager",
   });
 
+  // Create team members
   const memberDefs = [
-    { name: "Sanduni Fernando", email: "sanduni@example.com" },
-    { name: "Kasun Silva", email: "kasun@example.com" },
-    { name: "Nadeesha Wickrama", email: "nadeesha@example.com" },
-    { name: "Tharindu Jayasinghe", email: "tharindu@example.com" },
+    {
+      name: "Sanduni Fernando",
+      email: "sanduni@example.com",
+    },
+    {
+      name: "Kasun Silva",
+      email: "kasun@example.com",
+    },
+    {
+      name: "Nadeesha Wickrama",
+      email: "nadeesha@example.com",
+    },
+    {
+      name: "Tharindu Jayasinghe",
+      email: "tharindu@example.com",
+    },
   ];
 
   const members = [];
+
   for (const def of memberDefs) {
     const user = await User.create({
       name: def.name,
@@ -110,38 +143,49 @@ const run = async () => {
       password: "password123",
       role: "member",
     });
+
     members.push(user);
   }
 
+  // Create projects
   console.log("Creating projects...");
-  const projectDefs = ["Client A", "Internal Tooling", "R&D", "Marketing"];
+
+  const projectDefs = [
+    "Client A",
+    "Internal Tooling",
+    "R&D",
+    "Marketing",
+  ];
+
   const projects = [];
+
   for (const name of projectDefs) {
     const project = await Project.create({
       name,
       description: `${name} project`,
       createdBy: manager._id,
-      members: members.map((m) => m._id),
+      members: members.map((member) => member._id),
     });
+
     projects.push(project);
   }
 
+  // Create reports
   console.log("Creating reports...");
 
-  // For each member, create 4 weeks of reports:
-  //   week -3 : approved
-  //   week -2 : needs_correction (manager sent it back, with a comment)
-  //   week -1 : submitted (waiting for manager review)
-  //   week  0 : draft (still being written) - except one member has NO
-  //             report at all this week, to demo the "not started" case
   for (let m = 0; m < members.length; m++) {
     const member = members[m];
     const project = projects[m % projects.length];
 
-    // --- Week -3: Approved ---
+    // Week 3: Approved
     const week3Start = weeksAgo(3);
-    const content3 = buildContent(member.name, project.name, 1);
-    const report3 = await Report.create({
+    const content3 = buildContent(
+      member.name,
+      project.name,
+      1
+    );
+
+    await Report.create({
       user: member._id,
       project: project._id,
       weekStartDate: week3Start,
@@ -152,6 +196,7 @@ const run = async () => {
       latestReviewComment: "",
       latestReviewedBy: manager._id,
       latestReviewedAt: addDays(week3Start, 8),
+
       versions: [
         {
           versionNumber: 1,
@@ -164,16 +209,22 @@ const run = async () => {
       ],
     });
 
-    // --- Week -2: Needs Correction -> resubmitted -> now Submitted again ---
-    // This report demonstrates the FULL version history: v1 was sent back
-    // with a comment, the member fixed it, and v2 is now awaiting review.
+    // Week 2: Changes requested, then resubmitted
     const week2Start = weeksAgo(2);
-    const content2v1 = buildContent(member.name, project.name, 2);
+
+    const content2v1 = buildContent(
+      member.name,
+      project.name,
+      2
+    );
+
     const content2v2 = {
       ...content2v1,
-      notes: "Updated after manager feedback: added missing deliverable links.",
+      notes:
+        "Updated after manager feedback: added missing deliverable links.",
     };
-    const report2 = await Report.create({
+
+    await Report.create({
       user: member._id,
       project: project._id,
       weekStartDate: week2Start,
@@ -182,13 +233,15 @@ const run = async () => {
       status: "submitted",
       currentVersionNumber: 2,
       latestReviewComment: "",
+
       versions: [
         {
           versionNumber: 1,
           submittedAt: addDays(week2Start, 7),
           ...content2v1,
           reviewAction: "changes_requested",
-          reviewComment: "Please add the deliverable links for each completed task before I can approve this.",
+          reviewComment:
+            "Please add the deliverable links for each completed task before I can approve this.",
           reviewedBy: manager._id,
           reviewedAt: addDays(week2Start, 8),
         },
@@ -201,10 +254,16 @@ const run = async () => {
       ],
     });
 
-    // --- Week -1: Submitted, waiting for first review ---
+    // Week 1: Submitted and waiting for review
     const week1Start = weeksAgo(1);
-    const content1 = buildContent(member.name, project.name, 3);
-    const report1 = await Report.create({
+
+    const content1 = buildContent(
+      member.name,
+      project.name,
+      3
+    );
+
+    await Report.create({
       user: member._id,
       project: project._id,
       weekStartDate: week1Start,
@@ -212,6 +271,7 @@ const run = async () => {
       ...content1,
       status: "submitted",
       currentVersionNumber: 1,
+
       versions: [
         {
           versionNumber: 1,
@@ -222,11 +282,17 @@ const run = async () => {
       ],
     });
 
-    // --- Week 0 (current week): Draft, except skip one member entirely ---
-    // so the dashboard also shows a "not started" case.
+    // Current week: Draft
+    // Skip the last member to show "not started"
     if (m !== members.length - 1) {
       const week0Start = weeksAgo(0);
-      const content0 = buildContent(member.name, project.name, 4);
+
+      const content0 = buildContent(
+        member.name,
+        project.name,
+        4
+      );
+
       await Report.create({
         user: member._id,
         project: project._id,
@@ -238,15 +304,25 @@ const run = async () => {
     }
   }
 
-  console.log("\nSeed complete! Login credentials (all passwords: password123):");
-  console.log(`  Manager : ${manager.email}`);
-  members.forEach((m) => console.log(`  Member  : ${m.email}`));
+  // Show login details
+  console.log(
+    "\nSeed complete! All passwords: password123"
+  );
+
+  console.log(`Manager: ${manager.email}`);
+
+  members.forEach((member) => {
+    console.log(`Member: ${member.email}`);
+  });
 
   await mongoose.disconnect();
+
   process.exit(0);
 };
 
+// Handle errors
 run().catch((error) => {
   console.error("Seeding failed:", error);
+
   process.exit(1);
 });
